@@ -219,28 +219,38 @@ pub fn export(attr: TokenStream, item: TokenStream) -> TokenStream {
         (quote! {}, sf, quote! { #stub_name }, fn_name.clone())
     };
     
+    let instance_name = Ident::new(&format!("{}_INSTANCE", static_name), static_name.span());
+
     let static_var = if is_kernel {
         quote! {
             #[used]
             #[allow(non_upper_case_globals)]
             #[unsafe(export_name = #export_name)]
-            #[linkme::distributed_slice(crate::KMI_TABLE)]
-            #fn_vis static #static_name: crate::Kexport = crate::Kexport(
+            static #instance_name: crate::Kexport = crate::Kexport(
                 #ptr_ident as *const (),
                 crate::parse_version(#version_str),
                 #symbol_name
             );
+
+            #[linkme::distributed_slice(crate::KMI_TABLE)]
+            fn #static_name() -> &'static crate::Kexport {
+                &#instance_name
+            }
         }
     } else {
         quote! {
             #[used]
             #[allow(non_upper_case_globals)]
             #[unsafe(export_name = #export_name)]
-            #[linkme::distributed_slice(crate::KMI_TABLE)]
-            #fn_vis static #static_name: crate::ImExport = crate::ImExport(
+            static #instance_name: crate::ImExport = crate::ImExport(
                 #ptr_ident as *const (),
                 crate::parse_version(#version_str)
             );
+
+            #[linkme::distributed_slice(crate::KMI_TABLE)]
+            fn #static_name() -> &'static crate::ImExport {
+                &#instance_name
+            }
         }
     };
     
